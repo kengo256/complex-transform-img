@@ -8,13 +8,14 @@
 
 // プログラムの状態を定義する
 typedef enum {
-    STATE_INIT_FORWARD,    // 順写像の準備段階
-    STATE_FORWARD_MAPPING, // 順写像での変換中
-    STATE_CLEANUP_FORWARD, // 順写像の後片付け
-    STATE_INIT_WAIT,       // Enterキー入力待ちの準備段階
-    STATE_WAIT_FOR_ENTER,  // Enterキー入力待ち
-    STATE_INVERSE_MAPPING, // 逆写像での変換中
-    STATE_DONE             // 完成、静止画表示
+    STATE_INIT_FORWARD,           // 順写像の準備段階
+    STATE_WAIT_FOR_ENTER_FIRST,   // Enterキー入力待ち
+    STATE_FORWARD_MAPPING,        // 順写像での変換中
+    STATE_CLEANUP_FORWARD,        // 順写像の後片付け
+    STATE_INIT_WAIT_SECOND,       // Enterキー入力待ちの準備段階   
+    STATE_WAIT_FOR_ENTER_SECOND,  // Enterキー入力待ち
+    STATE_INVERSE_MAPPING,        // 逆写像での変換中
+    STATE_DONE                    // 完成、静止画表示
 } ProgramState;
 
 
@@ -111,7 +112,10 @@ int main(int argc, char* argv[]) {
                 running = 0;
             }
             if (event.type == SDL_KEYDOWN) {
-                if (currentState == STATE_WAIT_FOR_ENTER && event.key.keysym.sym == SDLK_RETURN) {
+                if (currentState == STATE_WAIT_FOR_ENTER_FIRST && event.key.keysym.sym == SDLK_RETURN) {
+                    SDL_SetWindowTitle(win_dest, "変換後（順写像）");
+                    currentState = STATE_FORWARD_MAPPING;
+                } else if (currentState == STATE_WAIT_FOR_ENTER_SECOND && event.key.keysym.sym == SDLK_RETURN) {
                     currentState = STATE_INVERSE_MAPPING;
                 }
             }
@@ -122,17 +126,21 @@ int main(int argc, char* argv[]) {
             case STATE_INIT_FORWARD:
                 // 左右のウィンドウを作成
                 win_src = SDL_CreateWindow("元画像", 0, 0, width, height, 0);
-                win_dest = SDL_CreateWindow("変換後（順写像）", 600 , 100, width, height, 0);
+                win_dest = SDL_CreateWindow("Enterで変換をスタート", 600 , 100, width, height, 0);
                 ren_src = SDL_CreateRenderer(win_src, -1, SDL_RENDERER_ACCELERATED);
                 ren_dest = SDL_CreateRenderer(win_dest, -1, SDL_RENDERER_ACCELERATED);
                 tex_src = SDL_CreateTexture(ren_src, pixel_format, SDL_TEXTUREACCESS_STREAMING, width, height);
                 tex_dest = SDL_CreateTexture(ren_dest, pixel_format, SDL_TEXTUREACCESS_STREAMING, width, height);
-                currentState = STATE_FORWARD_MAPPING;
+                currentState = STATE_WAIT_FOR_ENTER_FIRST;
+                break;
+
+            case STATE_WAIT_FOR_ENTER_FIRST:
+                // 何もせずキー入力を待つ
                 break;
 
             case STATE_FORWARD_MAPPING:
                 // 順写像を少しずつ進める
-                int pixels_per_frame = width * 5; // 速度調整
+                int pixels_per_frame = width * 3; // 速度調整
                 for (int i = 0; i < pixels_per_frame && forward_progress < width * height; i++) {
                     int x = forward_progress % width;
                     int y = forward_progress / width;
@@ -164,19 +172,19 @@ int main(int argc, char* argv[]) {
                 SDL_DestroyWindow(win_src);
                 SDL_DestroyWindow(win_dest);
                 win_src = win_dest = NULL; // ポインタをNULLにしておくのが安全
-                currentState = STATE_INIT_WAIT;
+                currentState = STATE_INIT_WAIT_SECOND;
                 break;
 
-            case STATE_INIT_WAIT:
+            case STATE_INIT_WAIT_SECOND:
                 // 中央のウィンドウを作成
                 win_main = SDL_CreateWindow("Enterを押して修復", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, 0);
                 ren_main = SDL_CreateRenderer(win_main, -1, SDL_RENDERER_ACCELERATED);
                 tex_main = SDL_CreateTexture(ren_main, pixel_format, SDL_TEXTUREACCESS_STREAMING, width, height);
                 memcpy(final_img, holey_dest_img, img_size); // 最終画像を穴あき画像で初期化
-                currentState = STATE_WAIT_FOR_ENTER;
+                currentState = STATE_WAIT_FOR_ENTER_SECOND;
                 break;
 
-            case STATE_WAIT_FOR_ENTER:
+            case STATE_WAIT_FOR_ENTER_SECOND:
                 // 何もせずキー入力を待つ
                 break;
 
@@ -231,7 +239,7 @@ int main(int argc, char* argv[]) {
             SDL_RenderClear(ren_dest);
             SDL_RenderCopy(ren_dest, tex_dest, NULL, NULL);
             SDL_RenderPresent(ren_dest);
-        } else if (currentState >= STATE_WAIT_FOR_ENTER) {
+        } else if (currentState >= STATE_WAIT_FOR_ENTER_SECOND) {
             SDL_UpdateTexture(tex_main, NULL, (currentState == STATE_INVERSE_MAPPING || currentState == STATE_DONE) ? final_img : holey_dest_img, width * channels);
             SDL_RenderClear(ren_main);
             SDL_RenderCopy(ren_main, tex_main, NULL, NULL);
