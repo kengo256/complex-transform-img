@@ -2,9 +2,10 @@
 #include <stdlib.h>
 #include <complex.h>
 #include <SDL2/SDL.h>
-
+#include <omp.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#define PI 3.1415926535
 
 // プログラムの状態を定義する
 typedef enum {
@@ -22,20 +23,29 @@ typedef enum {
 
 // -----------------------------------------------
 
-// 複素関数 f(z) = z^2
 double complex f(double complex z) {
-     return z * z;
+    return cexp(z);
+    // return cexp(z) + cexp(-z);
+    // return z * z;
+    // return csin(z);
+    // return  cpow(z, 3);
+    // return ctanh(z);
     }
 
-// 導関数 f'(z) = 2z
-double complex df(double complex z) {
-    return 2 * z;
-}
+    double complex df(double complex z) {
+    return cexp(z);
+    // return cexp(z) - cexp(-z);
+    // return 2 * z;
+    // return ccos(z);
+    // return 3 * z * z;
+    // return 1 / (ccosh(z) * ccosh(z));
+}  
 
 // 逆関数 (ニュートン法)
 double complex f_inv(double complex w) {
+
     double complex z = w;
-     for (int i = 0; i < 20; i++) {
+     for (int i = 0; i < 100; i++) {
         double complex f_z = f(z);
         double complex df_z = df(z);
             
@@ -140,15 +150,15 @@ int main(int argc, char* argv[]) {
 
             case STATE_FORWARD_MAPPING:
                 // 順写像を少しずつ進める
-                int pixels_per_frame = width * 3; // 速度調整
+                int pixels_per_frame = width * 5; // 速度調整
                 for (int i = 0; i < pixels_per_frame && forward_progress < width * height; i++) {
                     int x = forward_progress % width;
                     int y = forward_progress / width;
                     
-                    double complex z = ((double) x / width * 4 - 2) + ((double) y / height * 4 - 2) * I;
+                    double complex z = ((double) x / width * (2 * PI) - PI) + ((double) y / height * (2 * PI) - PI) * I;
                     double complex w = f(z);
-                    int nx = (int) ((creal(w) + 2) / 4 * width);
-                    int ny = (int) ((cimag(w) + 2) / 4 * height);
+                    int nx = (int) ((creal(w) + PI) / (2 * PI) * width);
+                    int ny = (int) ((cimag(w) + PI) / (2 * PI) * height);
 
                     int src_idx = (y * width + x) * channels;
                     if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
@@ -194,10 +204,13 @@ int main(int argc, char* argv[]) {
                 int rows_per_frame = 5; // 速度調整
                 for (int i = 0; i < rows_per_frame && inverse_row < height; i++) {
                     int ny = inverse_row;
+
+                    #pragma omp parallel for
                     for (int nx = 0; nx < width; nx++) {
-                        double complex w = ((double) nx / width * 4 - 2) + ((double) ny / height * 4 - 2) * I;
+                        double complex w = ((double) nx / width * (2 * PI) - PI) + ((double) ny / height * (2 * PI) - PI) * I;
                         double complex z = f_inv(w);
-                        double sx = (creal(z) + 2) / 4 * width, sy = (cimag(z) + 2) / 4 * height;
+                        double sx = (creal(z) + PI) / (2 * PI) * width;
+                        double sy = (cimag(z) + PI) / (2 * PI) * height;
                         
                         unsigned char color[] = {0, 0, 0, 255};
                         if (sx >= 0 && sx < width - 1 && sy >= 0 && sy < height - 1) {
