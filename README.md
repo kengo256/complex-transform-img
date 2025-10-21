@@ -21,5 +21,5 @@ gcc main-transform.c -o main-transform $(sdl2-config --cflags --libs) -lm -fopen
 ### 1.プログラム起動
 `./main-transform　画像ファイル名 `
 ### 2.Enterキーで順写像の変換を開始
-### 3.Enterキーで逆写像の変換を開始
+### 3.順写像での変換終了後、Enterキーで逆写像の変換を開始
 

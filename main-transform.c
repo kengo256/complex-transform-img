@@ -27,7 +27,7 @@ typedef enum {
 double complex f(double complex z) {
     return cexp(z);
 
-    //----サンプル----
+    //-----サンプル-----
     // return cexp(z) + cexp(-z);
     // return z * z;
     // return csin(z);
@@ -39,7 +39,7 @@ double complex f(double complex z) {
 double complex df(double complex z) {
     return cexp(z);
 
-    //----サンプル----
+    //-----サンプル-----
     // return cexp(z) - cexp(-z);
     // return 2 * z;
     // return ccos(z);
