@@ -23,17 +23,23 @@ typedef enum {
 
 // -----------------------------------------------
 
+//変換に使用する複素関数をここに記入
 double complex f(double complex z) {
     return cexp(z);
+
+    //----サンプル----
     // return cexp(z) + cexp(-z);
     // return z * z;
     // return csin(z);
     // return  cpow(z, 3);
     // return ctanh(z);
-    }
+}
 
-    double complex df(double complex z) {
+//変換に使用した複素関数の１階導関数をここに記入
+double complex df(double complex z) {
     return cexp(z);
+
+    //----サンプル----
     // return cexp(z) - cexp(-z);
     // return 2 * z;
     // return ccos(z);
@@ -58,7 +64,7 @@ double complex f_inv(double complex w) {
         z = z - (f_z - w) / df_z;
      }
      return z;
-    }
+}
 
 // -----------------------------------------------
 
